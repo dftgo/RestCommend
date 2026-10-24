@@ -57,5 +57,7 @@
 
 ## פקודות הרצה
 > Claude ממלא זאת ברגע שהאפליקציה יכולה לרוץ (בדרך כלל בסיום Milestone 1), ומעדכן אם משהו משתנה.
-- **הרצה (dev):** `<command>`
-- **בדיקות (test):** `<command, או "אין">`
+- **הרצה (dev):** `npm run dev` (http://localhost:5173)
+- **הרצה לבדיקה (build + preview, כולל התקנה ומצב לא מקוון):** `npm run serve` (http://localhost:4173)
+- **קישור זמני לטלפון:** במקביל ל־`npm run serve` — `cloudflared tunnel --url http://localhost:4173`
+- **בדיקות (test):** `npm test` · **בדיקת קוד:** `npm run lint`

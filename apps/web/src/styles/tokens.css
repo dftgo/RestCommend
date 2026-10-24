@@ -1,0 +1,41 @@
+/* Design tokens from DESIGN.md section 2 (approved style guide). */
+:root {
+  /* Palette */
+  --color-text: #211c19;
+  --color-bg: #f5efe4;
+  --color-surface: #ffffff;
+  --color-primary: #6d2932;
+  --color-accent: #ba925b; /* decorative lines only, never body text */
+  --color-secondary: #686b43; /* selection marks, secondary highlights */
+
+  /* Derived from the palette */
+  --color-text-muted: rgb(33 28 25 / 72%);
+  --color-border: rgb(33 28 25 / 16%);
+  --color-border-strong: rgb(33 28 25 / 32%);
+  --color-primary-soft: rgb(109 41 50 / 8%);
+  --color-secondary-soft: rgb(104 107 67 / 14%);
+  --color-on-primary: var(--color-bg);
+
+  /* Typography (rem keeps user text scaling working) */
+  --font-family: 'Heebo', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --fs-screen-title: 1.75rem; /* 28 */
+  --fs-section: 1.25rem; /* 20 */
+  --fs-body: 1rem; /* 16 */
+  --fs-small: 0.875rem; /* 14 */
+  --lh-body: 1.45;
+
+  /* Spacing */
+  --space-1: 0.5rem; /* 8 */
+  --space-2: 1rem; /* 16 */
+  --space-3: 1.5rem; /* 24 */
+  --gutter: 1.25rem; /* 20 */
+  --card-gap: 0.75rem; /* 12 */
+
+  /* Shape */
+  --radius-card: 14px;
+  --radius-field: 10px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgb(33 28 25 / 6%), 0 2px 8px rgb(33 28 25 / 5%);
+  --tap: 48px;
+  --content-max: 560px;
+}
