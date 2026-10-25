@@ -10,12 +10,13 @@ interface ChipProps {
   selected: boolean
   onClick: () => void
   role?: 'radio'
+  disabled?: boolean
 }
 
-function Chip({ label, selected, onClick, role }: ChipProps) {
+function Chip({ label, selected, onClick, role, disabled }: ChipProps) {
   const stateProps = role === 'radio' ? { role, 'aria-checked': selected } : { 'aria-pressed': selected }
   return (
-    <button type="button" className="chip" onClick={onClick} {...stateProps}>
+    <button type="button" className="chip" onClick={onClick} disabled={disabled} {...stateProps}>
       {selected && <CheckIcon className="chip-check" />}
       <span>{label}</span>
     </button>
@@ -29,15 +30,21 @@ interface MultiProps {
   onToggle: (id: string) => void
   /** Exclusive "doesn't matter" chip; selected when nothing else is. */
   indifferent?: { label: string; onSelect: () => void }
+  /** When this many are selected, the other chips are disabled. */
+  max?: number
 }
 
 /** Multi-select chips with an optional exclusive "doesn't matter" option. */
-export function MultiChipGroup({ label, options, selected, onToggle, indifferent }: MultiProps) {
+export function MultiChipGroup({ label, options, selected, onToggle, indifferent, max }: MultiProps) {
+  const full = max !== undefined && selected.length >= max
   return (
     <div className="chips" role="group" aria-label={label}>
-      {options.map((o) => (
-        <Chip key={o.id} label={o.label} selected={selected.includes(o.id)} onClick={() => onToggle(o.id)} />
-      ))}
+      {options.map((o) => {
+        const isOn = selected.includes(o.id)
+        return (
+          <Chip key={o.id} label={o.label} selected={isOn} disabled={full && !isOn} onClick={() => onToggle(o.id)} />
+        )
+      })}
       {indifferent && (
         <Chip label={indifferent.label} selected={selected.length === 0} onClick={indifferent.onSelect} />
       )}

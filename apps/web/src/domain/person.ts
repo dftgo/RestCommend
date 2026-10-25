@@ -1,4 +1,5 @@
 import { dietLabel, foodTypeLabel, FOOD_TYPES, INDIFFERENT_LABEL, type Diet } from '../catalogs/foodTypes'
+import { toggleInOrder } from './chips'
 
 export const FOOD_TEXT_MAX = 200
 
@@ -47,10 +48,12 @@ export function isNameEmpty(name: string): boolean {
  * by an empty list, so choosing it simply clears the field.
  */
 export function toggleFoodType(current: string[], id: string): string[] {
-  if (current.includes(id)) return current.filter((x) => x !== id)
-  const next = [...current, id]
   // Keep catalog order for a stable summary.
-  return FOOD_TYPES.map((f) => f.id).filter((x) => next.includes(x))
+  return toggleInOrder(
+    current,
+    id,
+    FOOD_TYPES.map((f) => f.id),
+  )
 }
 
 export function sanitizeDraft(draft: PersonDraft): PersonDraft {

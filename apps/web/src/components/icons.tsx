@@ -53,6 +53,14 @@ export function CheckIcon({ size = 16, className }: IconProps) {
   )
 }
 
+export function ChevronDownIcon({ size = 20, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  )
+}
+
 export function CloseIcon({ size = 20, className }: IconProps) {
   return (
     <svg {...base(size)} className={className}>
