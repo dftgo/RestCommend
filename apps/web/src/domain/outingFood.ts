@@ -1,8 +1,8 @@
+import type { FoodMode } from '@restcommend/contracts'
 import { foodTypeLabel, INDIFFERENT_LABEL, type Diet } from '../catalogs/foodTypes'
 import { FOOD_TEXT_MAX, type Person } from './person'
 
-/** use_saved = skip (use the profile); specific = "בחירה לערב"; indifferent = "לא משנה". */
-export type FoodMode = 'use_saved' | 'specific' | 'indifferent'
+export type { FoodMode }
 
 /** One participant's food choice for the current outing (screen 03). Memory only. */
 export interface OutingFood {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { SearchRequestSchema } from '@restcommend/contracts'
 import type { Diet } from '../catalogs/foodTypes'
 import type { OutingFood } from './outingFood'
 import { defaultSettings, type OutingSettings } from './outingSettings'
@@ -124,6 +125,12 @@ describe('search request', () => {
     const { request } = build()
     expect(JSON.stringify(request).toLowerCase()).not.toContain('parking')
     expect(request.excludedRestaurantIds).toEqual([])
+  })
+
+  it('passes the shared request schema in both modes', () => {
+    expect(SearchRequestSchema.safeParse(build().request).success).toBe(true)
+    const areas = build({ ...travel, searchMode: 'areas', areaIds: ['sharon'] })
+    expect(SearchRequestSchema.safeParse(areas.request).success).toBe(true)
   })
 
   it('includes only the selected participants', () => {

@@ -57,7 +57,7 @@ export function toggleFoodType(current: string[], id: string): string[] {
 }
 
 export function sanitizeDraft(draft: PersonDraft): PersonDraft {
-  const known = new Set(FOOD_TYPES.map((f) => f.id))
+  const known = new Set<string>(FOOD_TYPES.map((f) => f.id))
   return {
     displayName: cleanName(draft.displayName),
     foodTypes: draft.foodTypes.filter((id) => known.has(id)),

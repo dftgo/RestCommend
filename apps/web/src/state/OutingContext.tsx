@@ -1,8 +1,18 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from 'react'
 import { pruneSelection, toggleParticipant } from './outingSelection'
 import { DEFAULT_OUTING_FOOD, pruneFoodMap, type OutingFood } from '../domain/outingFood'
 import { defaultSettings, type OutingSettings } from '../domain/outingSettings'
-import type { BuiltRequest } from '../domain/searchRequest'
+import type { SearchSession } from './searchSession'
 
 // The current outing lives in memory only (not persisted), per the architecture.
 interface OutingState {
@@ -20,9 +30,9 @@ interface OutingState {
   settings: OutingSettings
   updateSettings: (patch: Partial<OutingSettings>) => void
 
-  /** Last built search request (and its device-only participant map). */
-  lastRequest: BuiltRequest | null
-  setLastRequest: (r: BuiltRequest | null) => void
+  /** Current search results (and the device-only participant map). */
+  session: SearchSession | null
+  setSession: Dispatch<SetStateAction<SearchSession | null>>
 }
 
 const OutingContext = createContext<OutingState | null>(null)
@@ -32,7 +42,7 @@ export function OutingProvider({ children }: { children: ReactNode }) {
   const ref = useRef(selectedIds)
   const [foodByPerson, setFoodByPerson] = useState<Record<string, OutingFood>>({})
   const [settings, setSettings] = useState<OutingSettings>(() => defaultSettings(new Date()))
-  const [lastRequest, setLastRequest] = useState<BuiltRequest | null>(null)
+  const [session, setSession] = useState<SearchSession | null>(null)
 
   const set = useCallback((next: string[]) => {
     ref.current = next
@@ -83,10 +93,10 @@ export function OutingProvider({ children }: { children: ReactNode }) {
       updateFood,
       settings,
       updateSettings,
-      lastRequest,
-      setLastRequest,
+      session,
+      setSession,
     }),
-    [selectedIds, toggle, remove, prune, foodByPerson, updateFood, settings, updateSettings, lastRequest],
+    [selectedIds, toggle, remove, prune, foodByPerson, updateFood, settings, updateSettings, session],
   )
   return <OutingContext.Provider value={value}>{children}</OutingContext.Provider>
 }

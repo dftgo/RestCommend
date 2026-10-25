@@ -6,6 +6,7 @@ import { ProfileScreen } from './screens/ProfileScreen'
 import { OutingPreferencesScreen } from './screens/OutingPreferencesScreen'
 import { OutingSettingsScreen } from './screens/OutingSettingsScreen'
 import { FavoritesScreen } from './screens/FavoritesScreen'
+import { ResultsScreen } from './screens/ResultsScreen'
 
 /** Each screen opens at its top, not at the previous screen's scroll position. */
 function ScrollToTop() {
@@ -27,6 +28,7 @@ export function App() {
           <Route path="/people/:id" element={<ProfileScreen />} />
           <Route path="/outing/preferences" element={<OutingPreferencesScreen />} />
           <Route path="/outing/settings" element={<OutingSettingsScreen />} />
+          <Route path="/outing/results" element={<ResultsScreen />} />
           <Route path="/favorites" element={<FavoritesScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

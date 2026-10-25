@@ -68,3 +68,29 @@ export function CloseIcon({ size = 20, className }: IconProps) {
     </svg>
   )
 }
+
+export function ExternalLinkIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M14 5h5v5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4" />
+    </svg>
+  )
+}
+
+export function AlertIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M12 4l9 16H3z" />
+      <path d="M12 10v4M12 17.5v.01" />
+    </svg>
+  )
+}
+
+export function QuestionIcon({ size = 18, className }: IconProps) {
+  return (
+    <svg {...base(size)} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 0 1 4.6 1.3c0 1.7-2.1 2-2.1 3.4M12 17.5v.01" />
+    </svg>
+  )
+}

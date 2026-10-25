@@ -57,7 +57,8 @@
 
 ## פקודות הרצה
 > Claude ממלא זאת ברגע שהאפליקציה יכולה לרוץ (בדרך כלל בסיום Milestone 1), ומעדכן אם משהו משתנה.
-- **הרצה (dev):** `npm run dev` (http://localhost:5173)
-- **הרצה לבדיקה (build + preview, כולל התקנה ומצב לא מקוון):** `npm run serve` (http://localhost:4173)
+- **הרצה (dev):** `npm run dev` (http://localhost:5173) — מריץ יחד את האפליקציה ואת השרת המקומי (פורט 8787)
+- **הרצה לבדיקה (build + preview, כולל התקנה ומצב לא מקוון):** `npm run serve` (http://localhost:4173) — גם כאן השרת רץ יחד
+- **דרישה להרצה:** ב־`.env` בשורש — `APP_ACCESS_KEY` ו־`VITE_APP_ACCESS_KEY` עם אותו ערך. תרחיש בדיקת שגיאות: `DEMO_SCENARIO` (normal / empty / provider_error / invalid_output / slow)
 - **קישור זמני לטלפון:** במקביל ל־`npm run serve` — `cloudflared tunnel --url http://localhost:4173`
 - **בדיקות (test):** `npm test` · **בדיקת קוד:** `npm run lint`

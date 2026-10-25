@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
-import { Navigate } from 'react-router'
+import { Navigate, useNavigate } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { personsRepository } from '../db'
 import { useOuting } from '../state/OutingContext'
@@ -30,12 +30,15 @@ import {
   toggleBudget,
   type OutingSettings,
 } from '../domain/outingSettings'
-import { buildSearchRequest, type SearchRequest } from '../domain/searchRequest'
+import { buildSearchRequest } from '../domain/searchRequest'
+import { newRequestId } from '../domain/requestId'
+import { postRecommendations, SearchCancelled, SearchError } from '../api/client'
+import { startSession } from '../state/searchSession'
 import { defaultVisit, israelLocal, isPastVisit, type LocalDateTime } from '../domain/visitTime'
 import { getCurrentPosition } from '../platform/geolocation'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { MultiChipGroup, SingleChipGroup } from '../components/ChipGroup'
-import { RequestPreview } from '../components/RequestPreview'
+import { SearchStatus, type SearchState } from '../components/SearchStatus'
 import { ChevronDownIcon } from '../components/icons'
 
 type LocationStatus = 'idle' | 'locating' | 'ok' | 'failed'
@@ -52,15 +55,11 @@ function useNow(intervalMs: number): Date {
   return now
 }
 
-function newRequestId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
-}
-
 /** Screen 04 — "הגדרות היציאה" */
 export function OutingSettingsScreen() {
   const persons = useLiveQuery(() => personsRepository.list(), [])
-  const { selectedIds, foodByPerson, settings, updateSettings, setLastRequest } = useOuting()
+  const navigate = useNavigate()
+  const { selectedIds, foodByPerson, settings, updateSettings, setSession } = useOuting()
   const now = useNow(30_000)
   const dateId = useId()
   const timeId = useId()
@@ -69,9 +68,14 @@ export function OutingSettingsScreen() {
 
   const [locationStatus, setLocationStatus] = useState<LocationStatus>(settings.currentLocation ? 'ok' : 'idle')
   const [extrasOpen, setExtrasOpen] = useState(false)
-  const [preview, setPreview] = useState<SearchRequest | null>(null)
+  const [searchState, setSearchState] = useState<SearchState>({ kind: 'idle' })
+  const inFlight = useRef(false)
+  const abortRef = useRef<AbortController | null>(null)
   const [visitRejected, setVisitRejected] = useState(false)
   const lastValidVisit = useRef(settings.visit)
+
+  // Leaving the screen cancels a running search.
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   if (selectedIds.length === 0) return <Navigate to="/" replace />
   if (!selectedIds.every((id) => isOutingFoodValid(outingFoodOf(foodByPerson, id)))) {
@@ -79,10 +83,10 @@ export function OutingSettingsScreen() {
   }
   if (!persons) return <main className="screen" />
 
-  // Any change invalidates the request shown below the button.
+  // A change clears an earlier error message.
   const update = (patch: Partial<OutingSettings>) => {
     updateSettings(patch)
-    setPreview(null)
+    setSearchState((s) => (s.kind === 'error' ? { kind: 'idle' } : s))
   }
 
   async function requestCurrentLocation() {
@@ -127,7 +131,8 @@ export function OutingSettingsScreen() {
     update({ visit: fallback })
   }
 
-  function search() {
+  async function search() {
+    if (inFlight.current) return // no double submit
     const current = new Date()
     if (settingsIssues(settings, current).length > 0 || !persons) return
     const byId = new Map(persons.map((p) => [p.id, p]))
@@ -138,8 +143,21 @@ export function OutingSettingsScreen() {
       .map((id) => byId.get(id))
       .filter((p) => p !== undefined)
     const built = buildSearchRequest({ participants: ordered, foodByPerson, settings, requestId: newRequestId() })
-    setLastRequest(built)
-    setPreview(built.request)
+
+    inFlight.current = true
+    setSearchState({ kind: 'loading' })
+    const controller = new AbortController()
+    abortRef.current = controller
+    try {
+      const res = await postRecommendations(built.request, { signal: controller.signal })
+      setSession(startSession(built, res))
+      navigate('/outing/results')
+    } catch (e) {
+      if (e instanceof SearchCancelled) return
+      setSearchState({ kind: 'error', code: e instanceof SearchError ? e.code : 'PROVIDER_UNAVAILABLE' })
+    } finally {
+      inFlight.current = false
+    }
   }
 
   return (
@@ -317,14 +335,18 @@ export function OutingSettingsScreen() {
       <div className="spacer" />
 
       <div className="field-group">
-        <button type="button" className="btn btn--primary" disabled={issues.length > 0} onClick={search}>
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={issues.length > 0 || searchState.kind === 'loading'}
+          onClick={() => void search()}
+        >
           מצאו לנו מסעדות
         </button>
         {issues.includes('no_area') && <p className="hint">בחרו לפחות אזור אחד</p>}
         {issues.includes('no_origin') && <p className="hint">בחרו את המיקום הנוכחי או הזינו כתובת</p>}
+        <SearchStatus state={searchState} loadingText="מחפשים מסעדות שיתאימו לכולם…" onRetry={() => void search()} />
       </div>
-
-      {preview && <RequestPreview request={preview} />}
     </main>
   )
 }

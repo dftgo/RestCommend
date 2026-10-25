@@ -2,17 +2,21 @@
   "name": "restcommend",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "dev": "npm run dev -w apps/web",
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
     "build": "npm run build -w apps/web",
-    "serve": "npm run serve -w apps/web",
-    "test": "npm run test -w apps/web",
-    "lint": "npm run lint -w apps/web",
+    "serve": "npm run build -w apps/web && concurrently -k -n api,web -c blue,magenta \"npm run start -w apps/api\" \"npm run preview -w apps/web\"",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
     "icons": "npm run icons -w apps/web"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.6"
   }
 }
