@@ -10,7 +10,8 @@ import {
 import type { SearchErrorCode } from '../domain/errors'
 
 /** The app waits up to 60 seconds (the server stops at 55). */
-export const CLIENT_TIMEOUT_MS = 60_000
+/** A bit longer than the server's 90-second search limit, so the server's own timeout answer arrives first. */
+export const CLIENT_TIMEOUT_MS = 95_000
 
 export class SearchError extends Error {
   constructor(readonly code: SearchErrorCode) {

@@ -14,6 +14,11 @@ import {
 } from '@restcommend/contracts'
 
 const tri = z.enum(['yes', 'no', 'unknown'])
+const token = z.string().regex(/^p([1-9]|10)$/)
+
+/** Facts that can carry their own sources. */
+export const FACT_KEYS = ['price', 'kosher', 'atmosphere', 'cuisine', 'diet', 'hours'] as const
+export type FactKey = (typeof FACT_KEYS)[number]
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 /** One opening interval. close <= open means it ends after midnight. */
@@ -51,6 +56,14 @@ export const CandidateSchema = z.strictObject({
   travelNote: z.string().min(1).max(100),
   link: LinkSchema.nullable(),
   sourceIds: z.array(z.string()),
+  /** Optional per-fact sources (live data). When missing, sourceIds is used. */
+  factSources: z.partialRecord(z.enum(FACT_KEYS), z.array(z.string())).optional(),
+  /** Menu items related to a participant's outing text, by token (live data). */
+  textMatches: z.partialRecord(token, z.array(z.string().min(1).max(60)).min(1)).optional(),
+  /** Short sourced description of the restaurant (no fit claims). */
+  description: z.string().min(1).max(400).optional(),
+  /** Short note per token on what is relevant to that participant's food preference. */
+  participantNotes: z.partialRecord(token, z.string().min(1).max(300)).optional(),
 })
 
 export const ResearchResultSchema = z.strictObject({
@@ -64,10 +77,27 @@ export type WeeklyHours = z.infer<typeof WeeklyHoursSchema>
 export type Candidate = z.infer<typeof CandidateSchema>
 export type ResearchResult = z.infer<typeof ResearchResultSchema>
 
+/** Operational numbers only — never content. */
+export interface ProviderMetrics {
+  providerMs?: number
+  searchCalls?: number
+  inputTokens?: number
+  outputTokens?: number
+  reasoningTokens?: number
+  candidatesReturned?: number
+  candidatesKept?: number
+  /** Parallel research calls made / failed. */
+  calls?: number
+  failedCalls?: number
+  model?: string
+}
+
 export interface ResearchInput {
   request: SearchRequest
   maxCandidates: number
   signal: AbortSignal
+  /** Called by live providers with operational metrics. */
+  onMetrics?: (metrics: ProviderMetrics) => void
 }
 
 export interface ResearchProvider {

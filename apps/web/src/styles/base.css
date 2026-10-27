@@ -583,11 +583,39 @@ h2.label {
 
 .search-loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: var(--space-1);
   color: var(--color-text-muted);
   text-align: center;
+}
+
+.search-loading__text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.search-progress {
+  width: 100%;
+  max-width: 320px;
+  height: 8px;
+  overflow: hidden;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-pill);
+}
+
+.search-progress__fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: width 1s linear;
+}
+
+.search-countdown {
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
 }
 
 .spinner {
@@ -609,6 +637,10 @@ h2.label {
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation-duration: 3s;
+  }
+
+  .search-progress__fill {
+    transition: none;
   }
 }
 

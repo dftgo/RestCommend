@@ -80,6 +80,8 @@ export const SearchRequestSchema = z
     /** areas only */
     areaIds: z.array(z.enum(AREA_IDS)).min(1).max(AREA_IDS.length).refine(unique).optional(),
     excludedRestaurantIds: z.array(z.string().min(1).max(100)).max(LIMITS.maxExcluded),
+    /** "Name — city" of every shown restaurant, so the search can skip them. Not personal data. */
+    excludedRestaurantNames: z.array(z.string().trim().min(1).max(300)).max(LIMITS.maxExcluded).optional(),
   })
   .superRefine((r, ctx) => {
     if (!unique(r.participants.map((p) => p.token))) {

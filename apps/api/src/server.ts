@@ -1,28 +1,30 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { parseEnv } from 'node:util'
 import { ConfigError, loadConfig } from './config'
+import { loadRootEnv } from './env'
 import { createApp } from './http/app'
 import { stdoutLogger } from './log'
 import { createFixtureProvider } from './search/fixtureProvider'
-
-/** Load the project-root .env. Variables already set in the environment win. */
-function loadRootEnv() {
-  const file = resolve(import.meta.dirname, '../../../.env')
-  if (!existsSync(file)) return
-  const values = parseEnv(readFileSync(file, 'utf8'))
-  for (const [key, value] of Object.entries(values)) {
-    if (process.env[key] === undefined || process.env[key] === '') process.env[key] = value
-  }
-}
+import { createOpenAIProvider, sdkClient } from './search/openai/openaiProvider'
+import type { ResearchProvider } from './search/researchProvider'
 
 loadRootEnv()
 
 try {
   const config = loadConfig()
-  const app = createApp({ config, provider: createFixtureProvider(config.demoScenario), logger: stdoutLogger })
+  let provider: ResearchProvider
+  let label: string
+  if (config.researchProvider === 'openai' && config.openai) {
+    // The SDK timeout is a backstop; the search time limit aborts first.
+    provider = createOpenAIProvider(config.openai, sdkClient(config.openai.apiKey, config.searchTimeoutMs + 5_000), {
+    callTimeoutMs: config.searchTimeoutMs - 3_000,
+  })
+    label = `live OpenAI search, model: ${config.openai.model}`
+  } else {
+    provider = createFixtureProvider(config.demoScenario)
+    label = `demo data, scenario: ${config.demoScenario}`
+  }
+  const app = createApp({ config, provider, logger: stdoutLogger })
   app.listen(config.port, () => {
-    stdoutLogger.message(`API listening on http://localhost:${config.port} (demo data, scenario: ${config.demoScenario})`)
+    stdoutLogger.message(`API listening on http://localhost:${config.port} (${label})`)
   })
 } catch (e) {
   if (e instanceof ConfigError) {

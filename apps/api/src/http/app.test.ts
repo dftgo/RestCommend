@@ -18,6 +18,7 @@ const config: Config = {
   maxCandidates: 10,
   ratingPriorWeight: 50,
   demoScenario: 'normal',
+  researchProvider: 'demo',
 }
 
 let server: Server | undefined
@@ -91,7 +92,7 @@ describe('POST /v1/recommendations', () => {
       expect(res.status).toBe(400)
       expect(await json(res)).toEqual({ error: { code: 'VALIDATION_ERROR' } })
     }
-    const huge = await s.post(undefined, KEY, JSON.stringify({ ...r, requestId: 'x'.repeat(40_000) }))
+    const huge = await s.post(undefined, KEY, JSON.stringify({ ...r, requestId: 'x'.repeat(70_000) }))
     expect(huge.status).toBe(413)
     const broken = await s.post(undefined, KEY, '{not json')
     expect(broken.status).toBe(400)
@@ -234,5 +235,26 @@ describe('POST /v1/recommendations', () => {
     expect(logged).not.toContain('דוגמה')
     expect(logged).not.toContain(KEY)
     expect(logged).not.toContain('req-1')
+  })
+
+  it('logs live search metrics as numbers only', async () => {
+    const demo = createFixtureProvider('normal', 0)
+    const provider: ResearchProvider = {
+      research: async (input) => {
+        input.onMetrics?.({ model: 'gpt-test', providerMs: 1200, searchCalls: 3, inputTokens: 900, outputTokens: 400 })
+        return demo.research(input)
+      },
+    }
+    const s = await start({ provider })
+    await s.post(areas(['tel_aviv_yafo']))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    const event = s.logs.find((e): e is LogEvent => typeof e === 'object' && e.route === 'POST /v1/recommendations')!
+    expect(event).toMatchObject({ status: 200, model: 'gpt-test', providerMs: 1200, searchCalls: 3, inputTokens: 900 })
+    const allowed = ['rid', 'route', 'status', 'ms', 'code', 'providerMs', 'searchCalls', 'inputTokens', 'outputTokens', 'reasoningTokens', 'candidatesReturned', 'candidatesKept', 'calls', 'failedCalls', 'model']
+    for (const [key, value] of Object.entries(event)) {
+      expect(allowed).toContain(key)
+      if (!['rid', 'route', 'code', 'model'].includes(key) && value !== undefined) expect(typeof value).toBe('number')
+    }
+    expect(JSON.stringify(s.logs)).not.toContain('דוגמה')
   })
 })

@@ -57,7 +57,12 @@ export function startSession(built: BuiltRequest, res: RecommendationsResponse):
 
 /** The "more" request: same parameters, new id, every shown restaurant excluded. */
 export function moreRequest(s: SearchSession, requestId: string): SearchRequest {
-  return { ...s.baseRequest, requestId, excludedRestaurantIds: [...s.shownRestaurantIds] }
+  return {
+    ...s.baseRequest,
+    requestId,
+    excludedRestaurantIds: [...s.shownRestaurantIds],
+    excludedRestaurantNames: allRestaurants(s).map((r) => `${r.name} — ${r.city}`),
+  }
 }
 
 export function moreLoading(s: SearchSession): SearchSession {

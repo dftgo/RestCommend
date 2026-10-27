@@ -59,6 +59,7 @@
 > Claude ממלא זאת ברגע שהאפליקציה יכולה לרוץ (בדרך כלל בסיום Milestone 1), ומעדכן אם משהו משתנה.
 - **הרצה (dev):** `npm run dev` (http://localhost:5173) — מריץ יחד את האפליקציה ואת השרת המקומי (פורט 8787)
 - **הרצה לבדיקה (build + preview, כולל התקנה ומצב לא מקוון):** `npm run serve` (http://localhost:4173) — גם כאן השרת רץ יחד
-- **דרישה להרצה:** ב־`.env` בשורש — `APP_ACCESS_KEY` ו־`VITE_APP_ACCESS_KEY` עם אותו ערך. תרחיש בדיקת שגיאות: `DEMO_SCENARIO` (normal / empty / provider_error / invalid_output / slow)
+- **דרישה להרצה:** ב־`.env` בשורש — `APP_ACCESS_KEY` ו־`VITE_APP_ACCESS_KEY` עם אותו ערך, ו־`OPENAI_API_KEY` לחיפוש אמיתי. בלי `OPENAI_API_KEY` (או עם `RESEARCH_PROVIDER=demo`) השרת רץ על נתוני דוגמה; תרחיש בדיקת שגיאות בדוגמה: `DEMO_SCENARIO` (normal / empty / provider_error / invalid_output / slow)
+- **בדיקת חיבור OpenAI:** `npm run check:openai -w apps/api` · **מדידת זמני חיפוש (עולה כסף):** `npm run measure -w apps/api` (דוח ב־`reports/`; `-- --only <N>` ליציאה אחת)
 - **קישור זמני לטלפון:** במקביל ל־`npm run serve` — `cloudflared tunnel --url http://localhost:4173`
 - **בדיקות (test):** `npm test` · **בדיקת קוד:** `npm run lint`

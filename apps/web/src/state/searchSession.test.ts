@@ -55,6 +55,7 @@ describe('search session', () => {
       ...built.request,
       requestId: 'third',
       excludedRestaurantIds: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+      excludedRestaurantNames: ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => `דוגמה: ${id} — חיפה`),
     })
   })
 

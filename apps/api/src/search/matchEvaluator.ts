@@ -11,7 +11,7 @@ import {
   type ParticipantRequest,
   type SearchRequest,
 } from '@restcommend/contracts'
-import type { Candidate } from './researchProvider'
+import type { Candidate, FactKey } from './researchProvider'
 import type { OpenState } from './openingHours'
 
 export interface Evaluation {
@@ -24,6 +24,9 @@ export interface Evaluation {
 }
 
 type Result = ParameterResult & { severity?: number }
+
+/** Sources for one fact: its own sources when known (live data), else all of the candidate's. */
+const src = (c: Candidate, key: FactKey) => c.factSources?.[key] ?? c.sourceIds
 
 const list = (labels: (string | undefined)[]) => labels.filter(Boolean).join(', ')
 
@@ -49,7 +52,7 @@ export function budgetDistance(x: number, range: BudgetRange): number {
 }
 
 function budget(c: Candidate, ranges: BudgetRange[]): Result {
-  const sourceIds = c.sourceIds
+  const sourceIds = src(c, 'price')
   if (!c.priceEstimate) {
     return { param: 'budget', status: 'unknown', reason: 'לא נמצא מידע מאומת על המחיר', sourceIds: [] }
   }
@@ -73,7 +76,7 @@ function budget(c: Candidate, ranges: BudgetRange[]): Result {
 }
 
 function kosher(c: Candidate, wanted: 'certified' | 'at_least_no_pork_seafood'): Result {
-  const sourceIds = c.sourceIds
+  const sourceIds = src(c, 'kosher')
   switch (c.kosher) {
     case 'unknown':
       return { param: 'kosher', status: 'unknown', reason: 'לא נמצא מידע מאומת על כשרות', sourceIds: [] }
@@ -94,13 +97,13 @@ function atmosphere(c: Candidate, wanted: string[]): Result {
   }
   const hit = wanted.filter((a) => c.atmospheres!.includes(a as never))
   if (hit.length > 0) {
-    return { param: 'atmosphere', status: 'match', reason: `אווירה ${list(hit.map(atmosphereLabel))}`, sourceIds: c.sourceIds }
+    return { param: 'atmosphere', status: 'match', reason: `אווירה ${list(hit.map(atmosphereLabel))}`, sourceIds: src(c, 'atmosphere') }
   }
   return {
     param: 'atmosphere',
     status: 'mismatch',
     reason: `האווירה המתוארת: ${list(c.atmospheres.map(atmosphereLabel)) || 'אחרת'}`,
-    sourceIds: c.sourceIds,
+    sourceIds: src(c, 'atmosphere'),
   }
 }
 
@@ -132,9 +135,12 @@ function travel(c: Candidate, max: number): Result {
   }
 }
 
-/** Menu word found in the outing text, if any. */
-function keywordHit(c: Candidate, text: string | undefined): string | undefined {
+/** Menu item related to the participant's outing text, if any. */
+function keywordHit(c: Candidate, token: string, text: string | undefined): string | undefined {
   if (!text) return undefined
+  // Live data: dishes the research tied to this participant's text (each with a verified source).
+  const related = c.textMatches?.[token as keyof NonNullable<Candidate['textMatches']>]
+  if (related && related.length > 0) return related.slice(0, 3).join(', ')
   const t = text.toLocaleLowerCase()
   return c.menuKeywords.find((k) => t.includes(k.toLocaleLowerCase()))
 }
@@ -144,9 +150,9 @@ function food(c: Candidate, p: ParticipantRequest): Result | null {
   const token = p.token
   const matched = p.foodTypes.filter((f) => c.cuisines?.includes(f))
   if (matched.length > 0) {
-    return { param: 'food', token, status: 'match', reason: `יש ${list(matched.map(foodTypeLabel))}`, sourceIds: c.sourceIds }
+    return { param: 'food', token, status: 'match', reason: `יש ${list(matched.map(foodTypeLabel))}`, sourceIds: src(c, 'cuisine') }
   }
-  const hit = keywordHit(c, p.outingText)
+  const hit = keywordHit(c, token, p.outingText)
   if (hit) return { param: 'food', token, status: 'match', reason: `בתפריט: ${hit}`, sourceIds: c.sourceIds }
   if (p.foodTypes.length > 0 && c.cuisines !== null) {
     return {
@@ -154,7 +160,7 @@ function food(c: Candidate, p: ParticipantRequest): Result | null {
       token,
       status: 'mismatch',
       reason: `אין ${list(p.foodTypes.map(foodTypeLabel))} (המטבח: ${list(c.cuisines.map(foodTypeLabel)) || 'אחר'})`,
-      sourceIds: c.sourceIds,
+      sourceIds: src(c, 'cuisine'),
     }
   }
   return { param: 'food', token, status: 'unknown', reason: 'לא נמצא מידע מאומת שהתפריט מתאים', sourceIds: [] }
@@ -166,14 +172,14 @@ function diet(c: Candidate, p: ParticipantRequest): Result | null {
   const word = p.diet === 'vegan' ? 'טבעוניות' : 'צמחוניות'
   // Vegan dishes are also vegetarian.
   const state = p.diet === 'vegan' ? c.veganOptions : c.veganOptions === 'yes' ? 'yes' : c.vegetarianOptions
-  if (state === 'yes') return { param: 'diet', token, status: 'match', reason: `יש מנות ${word}`, sourceIds: c.sourceIds }
-  if (state === 'no') return { param: 'diet', token, status: 'mismatch', reason: `אין מנות ${word}`, sourceIds: c.sourceIds }
+  if (state === 'yes') return { param: 'diet', token, status: 'match', reason: `יש מנות ${word}`, sourceIds: src(c, 'diet') }
+  if (state === 'no') return { param: 'diet', token, status: 'mismatch', reason: `אין מנות ${word}`, sourceIds: src(c, 'diet') }
   return { param: 'diet', token, status: 'unknown', reason: `לא נמצא מידע מאומת על מנות ${word}`, sourceIds: [] }
 }
 
 function openingHours(state: OpenState, c: Candidate): Result {
   return state === 'open'
-    ? { param: 'opening_hours', status: 'match', reason: 'פתוחה במועד שנבחר לפי שעות הפתיחה הידועות', sourceIds: c.sourceIds }
+    ? { param: 'opening_hours', status: 'match', reason: 'פתוחה במועד שנבחר לפי שעות הפתיחה הידועות', sourceIds: src(c, 'hours') }
     : { param: 'opening_hours', status: 'unknown', reason: 'לא נמצא מידע מאומת על שעות הפתיחה במועד שנבחר', sourceIds: [] }
 }
 

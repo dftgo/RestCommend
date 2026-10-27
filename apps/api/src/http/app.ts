@@ -4,7 +4,7 @@ import { SearchRequestSchema } from '@restcommend/contracts'
 import type { Config } from '../config'
 import type { Logger } from '../log'
 import { runSearch } from '../search/orchestrator'
-import type { ResearchProvider } from '../search/researchProvider'
+import type { ProviderMetrics, ResearchProvider } from '../search/researchProvider'
 import { accessCheck } from './accessCheck'
 import { ApiError, sendError } from './errors'
 
@@ -15,7 +15,7 @@ export interface AppDeps {
   now?: () => Date
 }
 
-const BODY_LIMIT = '32kb'
+const BODY_LIMIT = '64kb'
 
 export function createApp({ config, provider, logger, now = () => new Date() }: AppDeps) {
   const app = express()
@@ -27,7 +27,25 @@ export function createApp({ config, provider, logger, now = () => new Date() }: 
     const rid = randomUUID()
     const route = `${req.method} ${req.originalUrl.split('?')[0]}`
     res.on('finish', () => {
-      logger.info({ rid, route, status: res.statusCode, ms: Date.now() - started, code: res.locals.errorCode })
+      const m = (res.locals.metrics ?? {}) as ProviderMetrics
+      logger.info({
+        rid,
+        route,
+        status: res.statusCode,
+        ms: Date.now() - started,
+        code: res.locals.errorCode,
+        // Numbers and the model name only — never request or result content.
+        providerMs: m.providerMs,
+        searchCalls: m.searchCalls,
+        inputTokens: m.inputTokens,
+        outputTokens: m.outputTokens,
+        reasoningTokens: m.reasoningTokens,
+        candidatesReturned: m.candidatesReturned,
+        candidatesKept: m.candidatesKept,
+        calls: m.calls,
+        failedCalls: m.failedCalls,
+        model: m.model,
+      })
     })
     next()
   })
@@ -48,6 +66,9 @@ export function createApp({ config, provider, logger, now = () => new Date() }: 
       maxCandidates: config.maxCandidates,
       ratingPriorWeight: config.ratingPriorWeight,
       now,
+      onMetrics: (m) => {
+        res.locals.metrics = m
+      },
     })
     res.json(response)
   })

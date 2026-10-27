@@ -7,6 +7,17 @@ export interface LogEvent {
   status: number
   ms: number
   code?: string
+  /** Live search metrics (numbers and the model name only). */
+  providerMs?: number
+  searchCalls?: number
+  inputTokens?: number
+  outputTokens?: number
+  reasoningTokens?: number
+  candidatesReturned?: number
+  candidatesKept?: number
+  calls?: number
+  failedCalls?: number
+  model?: string
 }
 
 export interface Logger {

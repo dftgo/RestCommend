@@ -14,7 +14,8 @@ import { explain } from './explainer'
 import { evaluate, type Evaluation } from './matchEvaluator'
 import { openStateAt } from './openingHours'
 import { rank } from './ranker'
-import { ResearchResultSchema, type ResearchProvider, type ResearchResult } from './researchProvider'
+import { ProviderOutputError } from './openai/openaiProvider'
+import { ResearchResultSchema, type ProviderMetrics, type ResearchProvider, type ResearchResult } from './researchProvider'
 import { validateResponse } from './responseValidator'
 
 export interface SearchDeps {
@@ -23,6 +24,8 @@ export interface SearchDeps {
   maxCandidates: number
   ratingPriorWeight: number
   now: () => Date
+  /** Receives operational metrics from live providers (numbers only). */
+  onMetrics?: (metrics: ProviderMetrics) => void
 }
 
 async function research(request: SearchRequest, deps: SearchDeps): Promise<ResearchResult> {
@@ -36,7 +39,12 @@ async function research(request: SearchRequest, deps: SearchDeps): Promise<Resea
   })
   try {
     const raw = await Promise.race([
-      deps.provider.research({ request, maxCandidates: deps.maxCandidates, signal: controller.signal }),
+      deps.provider.research({
+        request,
+        maxCandidates: deps.maxCandidates,
+        signal: controller.signal,
+        onMetrics: deps.onMetrics,
+      }),
       timeout,
     ])
     const parsed = ResearchResultSchema.safeParse(raw)
@@ -44,7 +52,9 @@ async function research(request: SearchRequest, deps: SearchDeps): Promise<Resea
     return parsed.data
   } catch (e) {
     if (e instanceof ApiError) throw e
-    throw new ApiError('PROVIDER_UNAVAILABLE', 'provider_error')
+    if (e instanceof ProviderOutputError) throw new ApiError('PROVIDER_UNAVAILABLE', `invalid_output:${e.reason}`)
+    const status = (e as { status?: unknown }).status
+    throw new ApiError('PROVIDER_UNAVAILABLE', typeof status === 'number' ? `provider_http_${status}` : 'provider_error')
   } finally {
     clearTimeout(timer)
   }
@@ -59,7 +69,9 @@ function toRestaurant(e: Evaluation, request: SearchRequest): Restaurant {
     city: c.city,
     address: c.address,
     link: c.link,
-    priceEstimate: c.priceEstimate ? { ...c.priceEstimate, currency: 'ILS', sourceIds: c.sourceIds } : null,
+    priceEstimate: c.priceEstimate
+      ? { ...c.priceEstimate, currency: 'ILS', sourceIds: c.factSources?.price ?? c.sourceIds }
+      : null,
     matchSummary: { mismatchCount: e.mismatchCount, unknownCount: e.unknownCount },
     parameters: e.parameters,
     deviations: e.parameters.filter((r) => r.status === 'mismatch'),

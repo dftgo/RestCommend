@@ -65,6 +65,13 @@ describe('request schema', () => {
     expect(ok({ ...base, sharedFilters: { ...f, atmospheres: ['family', 'quiet', 'romantic'] } })).toBe(false)
   })
 
+  it('accepts names of shown restaurants for "more recommendations", within limits', () => {
+    expect(ok({ ...base, excludedRestaurantNames: ['טרטוריה — חיפה'] })).toBe(true)
+    expect(ok({ ...base, excludedRestaurantNames: [''] })).toBe(false)
+    expect(ok({ ...base, excludedRestaurantNames: ['א'.repeat(301)] })).toBe(false)
+    expect(ok({ ...base, excludedRestaurantNames: Array.from({ length: 101 }, (_, i) => `r${i}`) })).toBe(false)
+  })
+
   it('enforces the fields of each search mode', () => {
     expect(ok({ ...base, origin: travel.origin })).toBe(false)
     expect(ok({ ...base, maxTravelMinutes: 30 })).toBe(false)

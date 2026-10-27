@@ -16,6 +16,19 @@ interface Props {
 
 const ltr = (text: string) => <bdi dir="ltr">{text}</bdi>
 
+/** "dd.mm.yyyy" in Israel time, or null. */
+function collectedOn(iso: string | undefined): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })
+      .formatToParts(d)
+      .map((x) => [x.type, x.value]),
+  )
+  return `${p.day}.${p.month}.${p.year}`
+}
+
 function paramTitle(p: ParameterResult, nameOf: (token: string) => string) {
   const label = PARAM_LABELS[p.param]
   return p.token ? (
@@ -34,6 +47,7 @@ export function RestaurantCard({ restaurant: r, rank, expanded, onToggle, search
   const [peopleOpen, setPeopleOpen] = useState(false)
   const hasMismatch = r.matchSummary.mismatchCount > 0
   const linkedSources = r.sourceIds.map((id) => sources.get(id)).filter((s) => s !== undefined)
+  const collected = collectedOn(linkedSources.find((s) => s.retrievedAt)?.retrievedAt)
 
   return (
     <article className="card result-card">
@@ -168,11 +182,12 @@ export function RestaurantCard({ restaurant: r, rank, expanded, onToggle, search
                   {linkedSources.map((s) => (
                     <li key={s.id}>
                       <a className="link small" href={s.url} target="_blank" rel="noopener noreferrer">
-                        {s.title}
+                        <bdi>{s.title}</bdi>
                       </a>
                     </li>
                   ))}
                 </ul>
+                {collected && <span className="muted small">המידע נאסף ב־{ltr(collected)}</span>}
               </div>
             )}
           </div>
